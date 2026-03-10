@@ -5,55 +5,87 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Central de Cobros</title>
+<title>Central de Cobros PRO</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
 
 <style>
 
-body{
-font-family:Arial;
-background:#f4f6f9;
-padding:30px;
+*{
+box-sizing:border-box;
+font-family:Inter;
 }
 
-.card{
-max-width:420px;
+body{
+background:#f4f6f9;
+margin:0;
+padding:20px;
+}
+
+.container{
+max-width:520px;
 margin:auto;
 background:white;
+border-radius:12px;
 padding:25px;
-border-radius:10px;
-box-shadow:0 5px 20px rgba(0,0,0,0.1);
+box-shadow:0 10px 30px rgba(0,0,0,0.1);
 }
 
 h2{
 text-align:center;
+margin-bottom:20px;
 }
 
 input{
 width:100%;
 padding:12px;
+border:1px solid #ddd;
+border-radius:8px;
 margin-top:10px;
-border-radius:6px;
-border:1px solid #ccc;
 }
 
 button{
 width:100%;
 padding:14px;
-margin-top:15px;
 border:none;
-border-radius:6px;
-font-size:16px;
+border-radius:8px;
+margin-top:12px;
+font-size:15px;
 cursor:pointer;
 }
 
-.pagar{
+.btn{
 background:#00a859;
 color:white;
 }
 
-.whatsapp{
+.btn2{
+background:#1877f2;
+color:white;
+}
+
+.btn3{
 background:#25D366;
 color:white;
+}
+
+.codigo{
+font-size:26px;
+font-weight:bold;
+color:#00a859;
+text-align:center;
+margin-top:10px;
+}
+
+.card{
+background:#f7f7f7;
+padding:12px;
+border-radius:8px;
+margin-top:10px;
+}
+
+.estado{
+font-weight:bold;
 }
 
 </style>
@@ -62,21 +94,21 @@ color:white;
 
 <body>
 
-<div class="card">
+<div class="container">
 
-<h2>Pedido</h2>
+<h2>Central de Cobros</h2>
 
 <input id="cliente" placeholder="Nombre del cliente">
-
-<input id="telefono" placeholder="WhatsApp">
-
-<input id="producto" placeholder="Producto">
-
+<input id="telefono" placeholder="Teléfono WhatsApp">
 <input id="valor" placeholder="Valor">
 
-<button class="pagar" onclick="pagar()">Pagar con Wompi</button>
+<button class="btn" onclick="generarCobro()">Generar Cobro</button>
 
-<button class="whatsapp" onclick="enviar()">Enviar cobro por WhatsApp</button>
+<div id="codigo"></div>
+
+<h3>Historial</h3>
+
+<div id="historial"></div>
 
 </div>
 
@@ -84,30 +116,119 @@ color:white;
 
 const linkPago = "https://checkout.wompi.co/l/vwXEUI"
 
+let pagos = JSON.parse(localStorage.getItem("pagos")) || []
+
+function generarOTP(){
+return Math.floor(100000 + Math.random()*900000)
+}
+
+function generarCobro(){
+
+let cliente = document.getElementById("cliente").value
+let telefono = document.getElementById("telefono").value
+let valor = document.getElementById("valor").value
+
+let codigo = generarOTP()
+
+let pago = {
+id:Date.now(),
+cliente,
+telefono,
+valor,
+codigo,
+estado:"pendiente",
+fecha:new Date().toLocaleString()
+}
+
+pagos.push(pago)
+
+localStorage.setItem("pagos",JSON.stringify(pagos))
+
+document.getElementById("codigo").innerHTML =
+"<div class='codigo'>Codigo: "+codigo+"</div>"
+
+mostrarHistorial()
+
+}
+
 function pagar(){
 
 window.open(linkPago)
 
 }
 
-function enviar(){
-
-let cliente = document.getElementById("cliente").value
-let telefono = document.getElementById("telefono").value
-let producto = document.getElementById("producto").value
-let valor = document.getElementById("valor").value
+function enviarWhatsApp(pago){
 
 let mensaje =
-"Hola "+cliente+
-"%0ATu pedido: "+producto+
-"%0AValor: $"+valor+
-"%0APagar aquí: "+linkPago
+"Hola "+pago.cliente+
+"%0ATu pedido tiene el siguiente codigo: "+pago.codigo+
+"%0AValor: $"+pago.valor+
+"%0APagar aqui: "+linkPago
 
 window.open(
-"https://wa.me/"+telefono+"?text="+mensaje
+"https://wa.me/"+pago.telefono+"?text="+mensaje
 )
 
 }
+
+function confirmarPago(id){
+
+pagos = pagos.map(p=>{
+if(p.id===id){
+p.estado="pagado"
+}
+return p
+})
+
+localStorage.setItem("pagos",JSON.stringify(pagos))
+
+mostrarHistorial()
+
+}
+
+function mostrarHistorial(){
+
+let html=""
+
+pagos.slice().reverse().forEach(p=>{
+
+html += `
+<div class="card">
+
+Cliente: ${p.cliente}<br>
+Valor: $${p.valor}<br>
+Codigo: ${p.codigo}<br>
+
+<span class="estado">
+Estado: ${p.estado}
+</span>
+
+<br>
+
+<button class="btn" onclick="pagar()">
+Pagar con Wompi
+</button>
+
+<button class="btn3"
+onclick='enviarWhatsApp(${JSON.stringify(p)})'>
+Enviar cobro por WhatsApp
+</button>
+
+<button class="btn2"
+onclick='confirmarPago(${p.id})'>
+Marcar Pagado
+</button>
+
+</div>
+`
+
+})
+
+document.getElementById("historial").innerHTML = html
+
+}
+
+mostrarHistorial()
 
 </script>
 
