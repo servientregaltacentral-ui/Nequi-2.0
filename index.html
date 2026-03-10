@@ -5,82 +5,55 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Central de Cobros PRO</title>
-
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+<title>Central de Cobros</title>
 
 <style>
 
-*{
-box-sizing:border-box;
-font-family:Inter;
-}
-
 body{
+font-family:Arial;
 background:#f4f6f9;
-margin:0;
-padding:20px;
+padding:30px;
 }
 
-.container{
-max-width:520px;
+.card{
+max-width:420px;
 margin:auto;
 background:white;
-border-radius:12px;
 padding:25px;
-box-shadow:0 10px 30px rgba(0,0,0,0.1);
+border-radius:10px;
+box-shadow:0 5px 20px rgba(0,0,0,0.1);
 }
 
 h2{
 text-align:center;
-margin-bottom:20px;
 }
 
 input{
 width:100%;
 padding:12px;
-border:1px solid #ddd;
-border-radius:8px;
 margin-top:10px;
+border-radius:6px;
+border:1px solid #ccc;
 }
 
 button{
 width:100%;
 padding:14px;
+margin-top:15px;
 border:none;
-border-radius:8px;
-margin-top:12px;
-font-size:15px;
+border-radius:6px;
+font-size:16px;
 cursor:pointer;
 }
 
-.btn{
+.pagar{
 background:#00a859;
 color:white;
 }
 
-.btn2{
-background:#1877f2;
+.whatsapp{
+background:#25D366;
 color:white;
-}
-
-.codigo{
-font-size:26px;
-font-weight:bold;
-color:#00a859;
-text-align:center;
-margin-top:10px;
-}
-
-.card{
-background:#f7f7f7;
-padding:12px;
-border-radius:8px;
-margin-top:10px;
-}
-
-.estado{
-font-weight:bold;
 }
 
 </style>
@@ -89,130 +62,52 @@ font-weight:bold;
 
 <body>
 
-<div class="container">
+<div class="card">
 
-<h2>Central de Cobros</h2>
+<h2>Pedido</h2>
 
 <input id="cliente" placeholder="Nombre del cliente">
 
-<input id="telefono" placeholder="Teléfono WhatsApp">
+<input id="telefono" placeholder="WhatsApp">
+
+<input id="producto" placeholder="Producto">
 
 <input id="valor" placeholder="Valor">
 
-<button class="btn" onclick="generarCobro()">Generar Cobro</button>
+<button class="pagar" onclick="pagar()">Pagar con Wompi</button>
 
-<div id="codigo"></div>
-
-<h3>Historial</h3>
-
-<div id="historial"></div>
+<button class="whatsapp" onclick="enviar()">Enviar cobro por WhatsApp</button>
 
 </div>
 
 <script>
 
-let pagos = JSON.parse(localStorage.getItem("pagos")) || []
+const linkPago = "https://checkout.wompi.co/l/vwXEUI"
 
-function generarOTP(){
-return Math.floor(100000 + Math.random()*900000)
+function pagar(){
+
+window.open(linkPago)
+
 }
 
-function generarCobro(){
+function enviar(){
 
 let cliente = document.getElementById("cliente").value
 let telefono = document.getElementById("telefono").value
+let producto = document.getElementById("producto").value
 let valor = document.getElementById("valor").value
 
-let codigo = generarOTP()
-
-let pago = {
-id:Date.now(),
-cliente,
-telefono,
-valor,
-codigo,
-estado:"pendiente",
-fecha:new Date().toLocaleString()
-}
-
-pagos.push(pago)
-
-localStorage.setItem("pagos",JSON.stringify(pagos))
-
-document.getElementById("codigo").innerHTML =
-"<div class='codigo'>Codigo: "+codigo+"</div>"
-
-mostrarHistorial()
-
-}
-
-function enviarWhatsApp(pago){
-
 let mensaje =
-"Hola "+pago.cliente+
-"%0ATu codigo de pago es: "+pago.codigo+
-"%0AValor: $"+pago.valor
+"Hola "+cliente+
+"%0ATu pedido: "+producto+
+"%0AValor: $"+valor+
+"%0APagar aquí: "+linkPago
 
 window.open(
-"https://wa.me/"+pago.telefono+"?text="+mensaje
+"https://wa.me/"+telefono+"?text="+mensaje
 )
 
 }
-
-function confirmarPago(id){
-
-pagos = pagos.map(p=>{
-if(p.id===id){
-p.estado="pagado"
-}
-return p
-})
-
-localStorage.setItem("pagos",JSON.stringify(pagos))
-
-mostrarHistorial()
-
-}
-
-function mostrarHistorial(){
-
-let html=""
-
-pagos.reverse().forEach(p=>{
-
-html += `
-<div class="card">
-
-Cliente: ${p.cliente}<br>
-Valor: $${p.valor}<br>
-Codigo: ${p.codigo}<br>
-
-<span class="estado">
-Estado: ${p.estado}
-</span>
-
-<br>
-
-<button class="btn2"
-onclick='enviarWhatsApp(${JSON.stringify(p)})'>
-Enviar WhatsApp
-</button>
-
-<button class="btn"
-onclick='confirmarPago(${p.id})'>
-Marcar Pagado
-</button>
-
-</div>
-`
-
-})
-
-document.getElementById("historial").innerHTML = html
-
-}
-
-mostrarHistorial()
 
 </script>
 
