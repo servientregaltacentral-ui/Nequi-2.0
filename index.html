@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
 
 <meta charset="UTF-8">
@@ -33,7 +34,6 @@ box-shadow:0 10px 30px rgba(0,0,0,0.1);
 
 h2{
 text-align:center;
-margin-bottom:20px;
 }
 
 input{
@@ -49,9 +49,9 @@ width:100%;
 padding:14px;
 border:none;
 border-radius:8px;
-margin-top:12px;
-font-size:15px;
+margin-top:10px;
 cursor:pointer;
+font-size:15px;
 }
 
 .btn{
@@ -62,19 +62,6 @@ color:white;
 .btn2{
 background:#1877f2;
 color:white;
-}
-
-.btn3{
-background:#25D366;
-color:white;
-}
-
-.codigo{
-font-size:26px;
-font-weight:bold;
-color:#00a859;
-text-align:center;
-margin-top:10px;
 }
 
 .card{
@@ -88,6 +75,16 @@ margin-top:10px;
 font-weight:bold;
 }
 
+.menu button{
+width:48%;
+}
+
+.menu{
+display:flex;
+gap:4%;
+margin-bottom:15px;
+}
+
 </style>
 
 </head>
@@ -98,13 +95,41 @@ font-weight:bold;
 
 <h2>Central de Cobros</h2>
 
-<input id="cliente" placeholder="Nombre del cliente">
-<input id="telefono" placeholder="Teléfono WhatsApp">
+<div class="menu">
+
+<button class="btn2" onclick="mostrar('crear')">
+Crear Pedido
+</button>
+
+<button class="btn2" onclick="mostrar('ventas')">
+Dashboard
+</button>
+
+</div>
+
+<div id="crear">
+
+<input id="cliente" placeholder="Cliente">
+
+<input id="telefono" placeholder="WhatsApp">
+
+<input id="producto" placeholder="Producto">
+
 <input id="valor" placeholder="Valor">
 
-<button class="btn" onclick="generarCobro()">Generar Cobro</button>
+<button class="btn" onclick="crearPedido()">
+Generar Cobro
+</button>
 
-<div id="codigo"></div>
+<div id="resultado"></div>
+
+</div>
+
+<div id="ventas" style="display:none">
+
+<h3>Ventas</h3>
+
+<div id="total"></div>
 
 <h3>Historial</h3>
 
@@ -112,123 +137,135 @@ font-weight:bold;
 
 </div>
 
+</div>
+
 <script>
 
 const linkPago = "https://checkout.wompi.co/l/vwXEUI"
 
-let pagos = JSON.parse(localStorage.getItem("pagos")) || []
+let pedidos = JSON.parse(localStorage.getItem("pedidos")) || []
 
-function generarOTP(){
-return Math.floor(100000 + Math.random()*900000)
+function mostrar(pantalla){
+
+document.getElementById("crear").style.display="none"
+document.getElementById("ventas").style.display="none"
+
+document.getElementById(pantalla).style.display="block"
+
+if(pantalla==="ventas"){
+mostrarVentas()
 }
 
-function generarCobro(){
+}
 
-let cliente = document.getElementById("cliente").value
-let telefono = document.getElementById("telefono").value
-let valor = document.getElementById("valor").value
+function crearPedido(){
 
-let codigo = generarOTP()
+let cliente=document.getElementById("cliente").value
+let telefono=document.getElementById("telefono").value
+let producto=document.getElementById("producto").value
+let valor=document.getElementById("valor").value
 
-let pago = {
+if(!cliente || !telefono || !valor){
+alert("Completa los campos")
+return
+}
+
+let pedido={
 id:Date.now(),
 cliente,
 telefono,
+producto,
 valor,
-codigo,
-estado:"pendiente",
-fecha:new Date().toLocaleString()
+fecha:new Date().toLocaleString(),
+estado:"pendiente"
 }
 
-pagos.push(pago)
+pedidos.push(pedido)
 
-localStorage.setItem("pagos",JSON.stringify(pagos))
+localStorage.setItem("pedidos",JSON.stringify(pedidos))
 
-document.getElementById("codigo").innerHTML =
-"<div class='codigo'>Codigo: "+codigo+"</div>"
+document.getElementById("resultado").innerHTML="Cobro creado"
 
-mostrarHistorial()
-
-}
-
-function pagar(){
-
-window.open(linkPago)
+enviarWhatsApp(pedido)
 
 }
 
-function enviarWhatsApp(pago){
+function enviarWhatsApp(pedido){
 
 let mensaje =
-"Hola "+pago.cliente+
-"%0ATu pedido tiene el siguiente codigo: "+pago.codigo+
-"%0AValor: $"+pago.valor+
-"%0APagar aqui: "+linkPago
+"Hola "+pedido.cliente+
+"%0AProducto: "+pedido.producto+
+"%0AValor: $"+pedido.valor+
+"%0APagar aquí: "+linkPago
 
 window.open(
-"https://wa.me/"+pago.telefono+"?text="+mensaje
+"https://wa.me/"+pedido.telefono+"?text="+mensaje
 )
 
 }
 
-function confirmarPago(id){
+function marcarPagado(id){
 
-pagos = pagos.map(p=>{
+pedidos=pedidos.map(p=>{
+
 if(p.id===id){
 p.estado="pagado"
 }
+
 return p
+
 })
 
-localStorage.setItem("pagos",JSON.stringify(pagos))
+localStorage.setItem("pedidos",JSON.stringify(pedidos))
 
-mostrarHistorial()
+mostrarVentas()
 
 }
 
-function mostrarHistorial(){
+function mostrarVentas(){
 
 let html=""
+let total=0
 
-pagos.slice().reverse().forEach(p=>{
+pedidos.slice().reverse().forEach(p=>{
 
-html += `
+if(p.estado==="pagado"){
+total+=Number(p.valor)
+}
+
+html+=`
+
 <div class="card">
 
 Cliente: ${p.cliente}<br>
+Producto: ${p.producto}<br>
 Valor: $${p.valor}<br>
-Codigo: ${p.codigo}<br>
-
-<span class="estado">
-Estado: ${p.estado}
-</span>
+Estado: <span class="estado">${p.estado}</span>
 
 <br>
 
-<button class="btn" onclick="pagar()">
-Pagar con Wompi
-</button>
-
-<button class="btn3"
-onclick='enviarWhatsApp(${JSON.stringify(p)})'>
-Enviar cobro por WhatsApp
-</button>
-
 <button class="btn2"
-onclick='confirmarPago(${p.id})'>
+onclick='enviarWhatsApp(${JSON.stringify(p)})'>
+Enviar WhatsApp
+</button>
+
+<button class="btn"
+onclick='marcarPagado(${p.id})'>
 Marcar Pagado
 </button>
 
 </div>
+
 `
 
 })
 
-document.getElementById("historial").innerHTML = html
+document.getElementById("historial").innerHTML=html
+
+document.getElementById("total").innerHTML=
+"<b>Total pagado: $"+total+"</b>"
 
 }
-
-mostrarHistorial()
 
 </script>
 
